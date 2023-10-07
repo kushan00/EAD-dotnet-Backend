@@ -12,11 +12,11 @@ namespace backend.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class accountController : ControllerBase
+public class AccountController : ControllerBase
 {
     private readonly AccountService _accountService;
     private readonly JwtSettings jwtSettings;
-    public accountController(AccountService accountService, IOptions<JwtSettings> options)
+    public AccountController(AccountService accountService, IOptions<JwtSettings> options)
     {
         _accountService = accountService;
         jwtSettings = options.Value;
@@ -138,7 +138,22 @@ public class accountController : ControllerBase
             return NotFound();
         }
 
-        account.Id = id;
+        if (accountUpdate.Password is not null)
+        {
+            CreatePasswordHash(accountUpdate.Password!, out byte[] passwordHash, out byte[] passwordSalt);
+            account.Password = passwordHash;
+            account.Salt = passwordSalt;
+        }
+
+        account.Name = accountUpdate.Name;
+        account.Address = accountUpdate.Address;
+        account.NIC = accountUpdate.NIC;
+        account.Number = accountUpdate.Number;
+        account.Email = accountUpdate.Email;
+        account.DOB = accountUpdate.DOB;
+        account.Gender = accountUpdate.Gender;
+        account.IsActive = accountUpdate.IsActive;
+        account.UserRole = accountUpdate.UserRole;
 
         await _accountService.UpdateAccountAsync(id, account);
 
