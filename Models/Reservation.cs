@@ -2,7 +2,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace backend.Models;
-public class Resevation
+public class Reservation
 {
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
