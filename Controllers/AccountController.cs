@@ -53,13 +53,19 @@ public class AccountController : ControllerBase
 
 
     [HttpGet]
-    public async Task<List<AccountGetDTO>> Get()
+    public async Task<ActionResult<List<AccountGetDTO>>> Get()
     {
+        // Retrieve the account ID from HttpContext.Items
+        if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount && LogUserAccount.UserRole != "Back_Office")
+        {
+            return Unauthorized();
+        }
         var accounts = await _accountService.GetAccountAsync();
 
         // Convert the Account objects to AccountDTO objects
         var AccountGetDTOs = accounts.Select(account => new AccountGetDTO
         {
+            Id = account.Id,
             Name = account.Name,
             NIC = account.NIC,
             Address = account.Address,
@@ -69,17 +75,8 @@ public class AccountController : ControllerBase
             Gender = account.Gender,
             IsActive = account.IsActive,
             UserRole = account.UserRole,
+            CreatedTime = account.CreatedTime
         }).ToList();
-
-        // Retrieve the account ID from HttpContext.Items
-        if (HttpContext.Items.TryGetValue("UserDetails", out var accountIdObj))
-        {
-            // Now, you can use the accountId in your controller logic
-            // Example: var userDetails = userRepository.GetUserDetails(accountId);
-
-            Console.WriteLine($"Account IDssssss: {accountIdObj}");
-        }
-
 
         return AccountGetDTOs;
     }
@@ -113,7 +110,6 @@ public class AccountController : ControllerBase
             UserRole = account.UserRole,
             CreatedTime = account.CreatedTime
         };
-        Console.WriteLine($"Account ID: ");
 
         return AccountGetDTO;
     }
@@ -122,36 +118,36 @@ public class AccountController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult> Get([FromBody] LoginDTO loginDTO)
     {
-
         var account = await _accountService.GetAccountLogin(loginDTO.NIC!);
         if (account is null)
         {
             return BadRequest("Account not found");
         }
-        else
+        if (account.IsActive == false)
         {
-            if (VerifyPasswordHash(loginDTO.Password!, account.Password!, account.Salt!))
-            {
-                string token = CreateToken(account);
-                string result = "{\"token\" : \"" + token + "\" ,\"role\": \""
-                        + account.UserRole + "\"}";
-
-                // Set a cookie with the token
-                var cookieOptions = new CookieOptions
-                {
-                    Expires = DateTime.Now.AddHours(12), // Cookie expires in 1 hour
-                    HttpOnly = true,   // Makes the cookie accessible only through HTTP requests, not JavaScript
-                    Secure = true,     // Sends the cookie only over HTTPS if available
-                    SameSite = SameSiteMode.Strict // Restricts cookie sharing between sites
-                };
-
-                // Set the cookie in the response with a name
-                Response.Cookies.Append("Train", token, cookieOptions);
-
-                return Ok(result);
-            }
-            return NotFound();
+            return BadRequest("Account is deactivated");
         }
+        if (VerifyPasswordHash(loginDTO.Password!, account.Password!, account.Salt!))
+        {
+            string token = CreateToken(account);
+            string result = "{\"token\" : \"" + token + "\" ,\"role\": \""
+                    + account.UserRole + "\"}";
+
+            // Set a cookie with the token
+            var cookieOptions = new CookieOptions
+            {
+                Expires = DateTime.Now.AddHours(12), // Cookie expires in 1 hour
+                HttpOnly = true,   // Makes the cookie accessible only through HTTP requests, not JavaScript
+                Secure = true,     // Sends the cookie only over HTTPS if available
+                SameSite = SameSiteMode.Strict // Restricts cookie sharing between sites
+            };
+
+            // Set the cookie in the response with a name
+            Response.Cookies.Append("Train", token, cookieOptions);
+
+            return Ok(result);
+        }
+        return BadRequest("Invalid credentials");
     }
 
     [HttpPost]
@@ -173,8 +169,9 @@ public class AccountController : ControllerBase
         account.Salt = passwordSalt;
         account.DOB = accountPostDTO.DOB;
         account.Gender = accountPostDTO.Gender;
-        account.IsActive = accountPostDTO.IsActive;
+        account.IsActive = true;
         account.UserRole = accountPostDTO.UserRole;
+
         await _accountService.CreateAccountAsync(account);
 
         return CreatedAtAction(nameof(Get), new { id = account.Id }, account);
@@ -197,15 +194,14 @@ public class AccountController : ControllerBase
             account.Salt = passwordSalt;
         }
 
-        account.Name = accountPutDTO.Name;
-        account.Address = accountPutDTO.Address;
-        account.NIC = accountPutDTO.NIC;
-        account.Number = accountPutDTO.Number;
-        account.Email = accountPutDTO.Email;
-        account.DOB = accountPutDTO.DOB;
-        account.Gender = accountPutDTO.Gender;
-        account.IsActive = accountPutDTO.IsActive;
-        account.UserRole = accountPutDTO.UserRole;
+        account.Name = accountPutDTO.Name ?? account.Name;
+        account.Address = accountPutDTO.Address ?? account.Address;
+        account.NIC = accountPutDTO.NIC ?? account.NIC;
+        account.Number = accountPutDTO.Number ?? account.Number;
+        account.Email = accountPutDTO.Email ?? account.Email;
+        account.DOB = accountPutDTO.DOB ?? account.DOB;
+        account.Gender = accountPutDTO.Gender ?? account.Gender;
+        account.UserRole = accountPutDTO.UserRole ?? account.UserRole;
 
         await _accountService.UpdateAccountAsync(id, account);
 
@@ -228,19 +224,121 @@ public class AccountController : ControllerBase
     }
 
     [HttpPut("Status/{id:length(24)}")]
-    public async Task<IActionResult> UserStatus(string id, AccountPostDTO accountPutDTO)
+    public async Task<IActionResult> UserStatus(string id, AccountStatusDTO accountStatusDTO)
     {
+        // Retrieve the account ID from HttpContext.Items
+        if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount && LogUserAccount.UserRole != "Back_Office" && accountStatusDTO.IsActive != false)
+        {
+            return Unauthorized();
+        }
+
         var account = await _accountService.GetAccountAsync(id);
 
         if (account is null)
         {
             return NotFound();
         }
-        account.IsActive = accountPutDTO.IsActive;
+        account.IsActive = accountStatusDTO.IsActive;
 
         await _accountService.UpdateAccountAsync(id, account);
 
         return Ok();
     }
 
+    [HttpGet("Profile")]
+    public ActionResult<AccountGetDTO> GetProfile()
+    {
+        // Retrieve the account ID from HttpContext.Items
+        if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount)
+        {
+            if (LogUserAccount is null)
+            {
+                return NotFound();
+            }
+            // Convert the Account objects to AccountDTO objects
+            var AccountGetDTO = new AccountGetDTO
+            {
+                Id = LogUserAccount.Id,
+                Name = LogUserAccount.Name,
+                NIC = LogUserAccount.NIC,
+                Address = LogUserAccount.Address,
+                Number = LogUserAccount.Number,
+                Email = LogUserAccount.Email,
+                DOB = LogUserAccount.DOB,
+                Gender = LogUserAccount.Gender,
+                IsActive = LogUserAccount.IsActive,
+                UserRole = LogUserAccount.UserRole,
+                CreatedTime = LogUserAccount.CreatedTime
+            };
+
+            return AccountGetDTO;
+
+        }
+        return NotFound();
+    }
+
+    [HttpDelete("Profile")]
+    public async Task<IActionResult> DeleteProfile()
+    {
+        // Retrieve the account ID from HttpContext.Items
+        if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount && LogUserAccount.Id != null)
+        {
+            await _accountService.RemoveAccountAsync(LogUserAccount.Id);
+
+            return Ok();
+        }
+        return NotFound();
+    }
+
+    [HttpPut("Profile")]
+    public async Task<IActionResult> UpdateProfile(AccountPostDTO accountPutDTO)
+    {
+        // Retrieve the account ID from HttpContext.Items
+        if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount && LogUserAccount.Id != null)
+        {
+            if (LogUserAccount is null)
+            {
+                return NotFound();
+            }
+
+            if (accountPutDTO.Password is not null)
+            {
+                CreatePasswordHash(accountPutDTO.Password!, out byte[] passwordHash, out byte[] passwordSalt);
+                LogUserAccount.Password = passwordHash;
+                LogUserAccount.Salt = passwordSalt;
+            }
+
+            LogUserAccount.Name = accountPutDTO.Name ?? LogUserAccount.Name;
+            LogUserAccount.Address = accountPutDTO.Address ?? LogUserAccount.Address;
+            LogUserAccount.NIC = accountPutDTO.NIC ?? LogUserAccount.NIC;
+            LogUserAccount.Number = accountPutDTO.Number ?? LogUserAccount.Number;
+            LogUserAccount.Email = accountPutDTO.Email ?? LogUserAccount.Email;
+            LogUserAccount.DOB = accountPutDTO.DOB ?? LogUserAccount.DOB;
+            LogUserAccount.Gender = accountPutDTO.Gender ?? LogUserAccount.Gender;
+            LogUserAccount.UserRole = accountPutDTO.UserRole ?? LogUserAccount.UserRole;
+
+            await _accountService.UpdateAccountAsync(LogUserAccount.Id, LogUserAccount);
+
+            return Ok();
+        }
+        return NoContent();
+    }
+
+    [HttpPut("Profile/Status")]
+    public async Task<IActionResult> UserStatusProfile()
+    {
+        // Retrieve the account ID from HttpContext.Items
+        if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount && LogUserAccount.Id != null)
+        {
+            if (LogUserAccount is null)
+            {
+                return NotFound();
+            }
+            LogUserAccount.IsActive = false;
+
+            await _accountService.UpdateAccountAsync(LogUserAccount.Id, LogUserAccount);
+            return Ok();
+        }
+        return NoContent();
+    }
 }

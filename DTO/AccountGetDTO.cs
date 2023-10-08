@@ -3,7 +3,7 @@ namespace backend.DTO;
 {
     public String? Id { get; set; } = null!;
     public String? Name { get; set; } = null!;
-    public String? NIC { get; set; }
+    public String? NIC { get; set; } = null!;
     public String? Address { get; set; } = null!;
     public String? Number { get; set; } = null!;
     public String? Email { get; set; } = null!;
