@@ -1,4 +1,5 @@
 using backend.Models;
+using backend.DTO;
 using backend.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -52,7 +53,26 @@ public class AccountController : ControllerBase
 
 
     [HttpGet]
-    public async Task<List<Account>> Get() => await _accountService.GetAccountAsync();
+    public async Task<List<AccountGetDTO>> Get()
+    {
+        var accounts = await _accountService.GetAccountAsync();
+
+        // Convert the Account objects to AccountDTO objects
+        var AccountGetDTOs = accounts.Select(account => new AccountGetDTO
+        {
+            Name = account.Name,
+            NIC = account.NIC,
+            Address = account.Address,
+            Number = account.Number,
+            Email = account.Email,
+            DOB = account.DOB,
+            Gender = account.Gender,
+            IsActive = account.IsActive,
+            UserRole = account.UserRole,
+        }).ToList();
+
+        return AccountGetDTOs;
+    }
 
     [HttpGet("{id:length(24)}")]
     public async Task<ActionResult<Account>> Get(string id)
@@ -67,20 +87,21 @@ public class AccountController : ControllerBase
 
     //GET Account => Login
     [HttpPost("login")]
-    public async Task<ActionResult> Get([FromBody] AccountDTO accountDTO)
+    public async Task<ActionResult> Get([FromBody] LoginDTO loginDTO)
     {
 
-        var account = await _accountService.GetAccountLogin(accountDTO.NIC!);
+        var account = await _accountService.GetAccountLogin(loginDTO.NIC!);
         if (account is null)
         {
             return BadRequest("Account not found");
         }
         else
         {
-            if (VerifyPasswordHash(accountDTO.Password!, account.Password!, account.Salt!))
+            if (VerifyPasswordHash(loginDTO.Password!, account.Password!, account.Salt!))
             {
                 string token = CreateToken(account);
-                string result = "{\"token\" : \"" + token + "\"}";
+                string result = "{\"token\" : \"" + token + "\" ,\"role\": \""
+                        + account.UserRole + "\"}";
 
                 // Set a cookie with the token
                 var cookieOptions = new CookieOptions
@@ -95,41 +116,39 @@ public class AccountController : ControllerBase
                 Response.Cookies.Append("Train", token, cookieOptions);
 
                 return Ok(result);
-
             }
             return NotFound();
         }
-
     }
 
     [HttpPost]
-    public async Task<IActionResult> Post(AccountDTO accountDTO)
+    public async Task<IActionResult> Post(AccountPostDTO accountPostDTO)
     {
-        var accountCheck = await _accountService.GetAccountLogin(accountDTO.NIC!);
+        var accountCheck = await _accountService.GetAccountLogin(accountPostDTO.NIC!);
         if (accountCheck is not null)
         {
             return BadRequest("NIC already available");
         }
         Account account = new();
-        CreatePasswordHash(accountDTO.Password!, out byte[] passwordHash, out byte[] passwordSalt);
-        account.Name = accountDTO.Name;
-        account.Address = accountDTO.Address;
-        account.NIC = accountDTO.NIC;
-        account.Number = accountDTO.Number;
-        account.Email = accountDTO.Email;
+        CreatePasswordHash(accountPostDTO.Password!, out byte[] passwordHash, out byte[] passwordSalt);
+        account.Name = accountPostDTO.Name;
+        account.Address = accountPostDTO.Address;
+        account.NIC = accountPostDTO.NIC;
+        account.Number = accountPostDTO.Number;
+        account.Email = accountPostDTO.Email;
         account.Password = passwordHash;
         account.Salt = passwordSalt;
-        account.DOB = accountDTO.DOB;
-        account.Gender = accountDTO.Gender;
-        account.IsActive = accountDTO.IsActive;
-        account.UserRole = accountDTO.UserRole;
+        account.DOB = accountPostDTO.DOB;
+        account.Gender = accountPostDTO.Gender;
+        account.IsActive = accountPostDTO.IsActive;
+        account.UserRole = accountPostDTO.UserRole;
         await _accountService.CreateAccountAsync(account);
 
         return CreatedAtAction(nameof(Get), new { id = account.Id }, account);
     }
 
     [HttpPut("{id:length(24)}")]
-    public async Task<IActionResult> Update(string id, AccountDTO accountUpdate)
+    public async Task<IActionResult> Update(string id, AccountPostDTO accountPutDTO)
     {
         var account = await _accountService.GetAccountAsync(id);
 
@@ -138,22 +157,22 @@ public class AccountController : ControllerBase
             return NotFound();
         }
 
-        if (accountUpdate.Password is not null)
+        if (accountPutDTO.Password is not null)
         {
-            CreatePasswordHash(accountUpdate.Password!, out byte[] passwordHash, out byte[] passwordSalt);
+            CreatePasswordHash(accountPutDTO.Password!, out byte[] passwordHash, out byte[] passwordSalt);
             account.Password = passwordHash;
             account.Salt = passwordSalt;
         }
 
-        account.Name = accountUpdate.Name;
-        account.Address = accountUpdate.Address;
-        account.NIC = accountUpdate.NIC;
-        account.Number = accountUpdate.Number;
-        account.Email = accountUpdate.Email;
-        account.DOB = accountUpdate.DOB;
-        account.Gender = accountUpdate.Gender;
-        account.IsActive = accountUpdate.IsActive;
-        account.UserRole = accountUpdate.UserRole;
+        account.Name = accountPutDTO.Name;
+        account.Address = accountPutDTO.Address;
+        account.NIC = accountPutDTO.NIC;
+        account.Number = accountPutDTO.Number;
+        account.Email = accountPutDTO.Email;
+        account.DOB = accountPutDTO.DOB;
+        account.Gender = accountPutDTO.Gender;
+        account.IsActive = accountPutDTO.IsActive;
+        account.UserRole = accountPutDTO.UserRole;
 
         await _accountService.UpdateAccountAsync(id, account);
 
@@ -171,6 +190,22 @@ public class AccountController : ControllerBase
         }
 
         await _accountService.RemoveAccountAsync(id);
+
+        return Ok();
+    }
+
+    [HttpPut("Status/{id:length(24)}")]
+    public async Task<IActionResult> UserStatus(string id, AccountPostDTO accountPutDTO)
+    {
+        var account = await _accountService.GetAccountAsync(id);
+
+        if (account is null)
+        {
+            return NotFound();
+        }
+        account.IsActive = accountPutDTO.IsActive;
+
+        await _accountService.UpdateAccountAsync(id, account);
 
         return Ok();
     }

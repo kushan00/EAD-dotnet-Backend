@@ -21,7 +21,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.Configure<DatabaseSetting>(
-    builder.Configuration.GetSection("ChainStoreDatabase"));
+    builder.Configuration.GetSection("TrainTicketingDatabase"));
 
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("JwtSettings"));

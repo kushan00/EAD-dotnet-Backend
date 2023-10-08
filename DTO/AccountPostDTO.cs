@@ -1,5 +1,5 @@
-namespace backend.Models;
-    public class AccountDTO
+namespace backend.DTO;
+    public class AccountPostDTO
     {
     public String? Name { get; set; } = null!;
     public String? NIC { get; set; }
@@ -11,7 +11,4 @@ namespace backend.Models;
     public String? Gender { get; set; } = null!;
     public Boolean? IsActive { get; set; } = null!;
     public String? UserRole { get; set; } = null!;
-    public DateTime? Create_at { get; set; } = null!;
-    public DateTime? Update_at { get; set; } = null!;
-
 }

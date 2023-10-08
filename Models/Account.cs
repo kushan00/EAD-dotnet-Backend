@@ -19,6 +19,6 @@ public class Account
     public Boolean? IsActive { get; set; } = null!;
     public byte[]? Salt { get; set; } = null!;
     public String? UserRole { get; set; } = null!;
-    public DateTime? Create_at { get; set; } = null!;
-    public DateTime? Update_at { get; set; } = null!;
+    [BsonDateTimeOptions(Kind = DateTimeKind.Utc, Representation = BsonType.DateTime)]
+    public DateTime? CreatedTime { get; set; } = DateTime.UtcNow;
 }
