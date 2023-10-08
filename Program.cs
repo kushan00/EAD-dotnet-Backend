@@ -50,6 +50,7 @@ builder.Services.AddAuthentication(item =>
 
 builder.Services.AddSingleton<AccountService>();
 builder.Services.AddSingleton<TrainService>();
+builder.Services.AddSingleton<ReservationService>();
 
 var app = builder.Build();
 app.UseCors("CORSPolicy");

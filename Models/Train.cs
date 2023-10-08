@@ -5,6 +5,7 @@ namespace backend.Models;
 public class Train
 {
     [BsonId]
+    // [BsonRepresentation(BsonType.ObjectId)]
     [BsonElement("_id")]
     public String? Id { get; set; }
     public String? TrainId { get; set; } = null!;
