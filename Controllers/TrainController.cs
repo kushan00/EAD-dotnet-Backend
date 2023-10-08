@@ -1,148 +1,101 @@
-using backend.Models;
 using backend.DTO;
 using backend.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using Microsoft.Extensions.Options;
-using System.Security.Cryptography;
-using System.Text;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using backend.Models;
 
-namespace backend.Controllers;
-
-[ApiController]
-[Route("[controller]")]
-public class TrainController : ControllerBase
+namespace backend.Controllers
 {
-    private readonly TrainController _trainController;
-    public TrainController(TrainController trainController)
+    [Route("api/[controller]")]
+    [ApiController]
+    public class TrainController : ControllerBase
     {
-        _trainController = trainController;
-    }
+        private readonly TrainService _trainService;
 
-    [HttpGet]
-    public async Task<List<Account>> Get() => await _trainService.GetAccountAsync();
-
-    [HttpGet("{id:length(24)}")]
-    public async Task<ActionResult<Account>> Get(string id)
-    {
-        var account = await _accountService.GetAccountAsync(id);
-        if (account is null)
+        public TrainController(TrainService trainService)
         {
-            return NotFound();
+            _trainService = trainService;
         }
-        return account;
-    }
 
-    //GET Account => Login
-    [HttpPost("login")]
-    public async Task<ActionResult> Get([FromBody] AccountDTO accountDTO)
-    {
-
-        var account = await _accountService.GetAccountLogin(accountDTO.NIC!);
-        if (account is null)
+        // GET: api/Train
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<TrainDTO>>> GetTrains()
         {
-            return BadRequest("Account not found");
+            var trains = await _trainService.GetTrainAsync();
+            return Ok(trains);
         }
-        else
+
+        // GET: api/Train/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<TrainDTO>> GetTrain(string id)
         {
-            if (VerifyPasswordHash(accountDTO.Password!, account.Password!, account.Salt!))
+            var train = await _trainService.GetTrainAsync(id);
+
+            if (train == null)
             {
-                string token = CreateToken(account);
-                string result = "{\"token\" : \"" + token + "\"}";
-
-                // Set a cookie with the token
-                var cookieOptions = new CookieOptions
-                {
-                    Expires = DateTime.Now.AddHours(12), // Cookie expires in 1 hour
-                    HttpOnly = true,   // Makes the cookie accessible only through HTTP requests, not JavaScript
-                    Secure = true,     // Sends the cookie only over HTTPS if available
-                    SameSite = SameSiteMode.Strict // Restricts cookie sharing between sites
-                };
-
-                // Set the cookie in the response with a name
-                Response.Cookies.Append("Train", token, cookieOptions);
-
-                return Ok(result);
-
+                return NotFound();
             }
-            return NotFound();
+
+            return Ok(train);
         }
 
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> Post(AccountDTO accountDTO)
-    {
-        var accountCheck = await _accountService.GetAccountLogin(accountDTO.NIC!);
-        if (accountCheck is not null)
+        // POST: api/Train
+        [HttpPost]
+        public async Task<ActionResult<TrainDTO>> CreateTrain(TrainDTO trainDTO)
         {
-            return BadRequest("NIC already available");
+            var train = new Train
+            {
+                Id = trainDTO.Id ?? Guid.NewGuid().ToString(), // Generate a new Id if not provided
+                TrainId = trainDTO.TrainId,
+                Name = trainDTO.Name,
+                IsActive = trainDTO.IsActive ?? false, // Default to false if not provided
+            };
+
+            await _trainService.CreateTrainAsync(train);
+
+            return CreatedAtAction(nameof(GetTrain), new { id = train.Id }, train);
         }
-        Account account = new();
-        CreatePasswordHash(accountDTO.Password!, out byte[] passwordHash, out byte[] passwordSalt);
-        account.Name = accountDTO.Name;
-        account.Address = accountDTO.Address;
-        account.NIC = accountDTO.NIC;
-        account.Number = accountDTO.Number;
-        account.Email = accountDTO.Email;
-        account.Password = passwordHash;
-        account.Salt = passwordSalt;
-        account.DOB = accountDTO.DOB;
-        account.Gender = accountDTO.Gender;
-        account.IsActive = accountDTO.IsActive;
-        account.UserRole = accountDTO.UserRole;
-        await _accountService.CreateAccountAsync(account);
 
-        return CreatedAtAction(nameof(Get), new { id = account.Id }, account);
-    }
-
-    [HttpPut("{id:length(24)}")]
-    public async Task<IActionResult> Update(string id, AccountDTO accountUpdate)
-    {
-        var account = await _accountService.GetAccountAsync(id);
-
-        if (account is null)
+        // PUT: api/Train/5
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateTrain(string id, TrainDTO trainDTO)
         {
-            return NotFound();
+            var existingTrain = await _trainService.GetTrainAsync(id);
+
+            if (existingTrain == null)
+            {
+                return NotFound();
+            }
+
+            var updatedTrain = new Train
+            {
+                Id = existingTrain.Id,
+                TrainId = trainDTO.TrainId,
+                Name = trainDTO.Name,
+                IsActive = trainDTO.IsActive ?? false,
+            };
+
+            await _trainService.UpdateTrainAsync(id, updatedTrain);
+
+            return NoContent();
         }
 
-        if (accountUpdate.Password is not null)
+        // DELETE: api/Train/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteTrain(string id)
         {
-            CreatePasswordHash(accountUpdate.Password!, out byte[] passwordHash, out byte[] passwordSalt);
-            account.Password = passwordHash;
-            account.Salt = passwordSalt;
+            var existingTrain = await _trainService.GetTrainAsync(id);
+
+            if (existingTrain == null)
+            {
+                return NotFound();
+            }
+
+            await _trainService.RemoveTrainAsync(id);
+
+            return NoContent();
         }
-
-        account.Name = accountUpdate.Name;
-        account.Address = accountUpdate.Address;
-        account.NIC = accountUpdate.NIC;
-        account.Number = accountUpdate.Number;
-        account.Email = accountUpdate.Email;
-        account.DOB = accountUpdate.DOB;
-        account.Gender = accountUpdate.Gender;
-        account.IsActive = accountUpdate.IsActive;
-        account.UserRole = accountUpdate.UserRole;
-
-        await _accountService.UpdateAccountAsync(id, account);
-
-        return NoContent();
     }
-
-    [HttpDelete("{id:length(24)}")]
-    public async Task<IActionResult> Delete(string id)
-    {
-        var User = await _accountService.GetAccountAsync(id);
-
-        if (User is null)
-        {
-            return NotFound();
-        }
-
-        await _accountService.RemoveAccountAsync(id);
-
-        return Ok();
-    }
-
 }

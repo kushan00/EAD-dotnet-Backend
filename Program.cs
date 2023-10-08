@@ -49,6 +49,7 @@ builder.Services.AddAuthentication(item =>
 });
 
 builder.Services.AddSingleton<AccountService>();
+builder.Services.AddSingleton<TrainService>();
 
 var app = builder.Build();
 app.UseCors("CORSPolicy");
