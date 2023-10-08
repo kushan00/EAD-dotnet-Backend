@@ -1,6 +1,7 @@
 namespace backend.DTO;
     public class AccountGetDTO
 {
+    public String? Id { get; set; } = null!;
     public String? Name { get; set; } = null!;
     public String? NIC { get; set; }
     public String? Address { get; set; } = null!;

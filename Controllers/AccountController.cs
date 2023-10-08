@@ -42,7 +42,7 @@ public class AccountController : ControllerBase
         var tokenKey = Encoding.UTF8.GetBytes(this.jwtSettings.SecurityKey);
         var tokenDesc = new SecurityTokenDescriptor
         {
-            Subject = new ClaimsIdentity(new Claim[] { new(ClaimTypes.Name, account.NIC!), new(ClaimTypes.Role, account.UserRole!) }),
+            Subject = new ClaimsIdentity(new Claim[] { new("NIC", account.NIC!), new(ClaimTypes.Role, account.UserRole!), new("account_id", account.Id!) }),
             Expires = DateTime.Now.AddMinutes(30),
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(tokenKey), SecurityAlgorithms.HmacSha512Signature)
         };
@@ -71,18 +71,51 @@ public class AccountController : ControllerBase
             UserRole = account.UserRole,
         }).ToList();
 
+        // Retrieve the account ID from HttpContext.Items
+        if (HttpContext.Items.TryGetValue("UserDetails", out var accountIdObj))
+        {
+            // Now, you can use the accountId in your controller logic
+            // Example: var userDetails = userRepository.GetUserDetails(accountId);
+
+            Console.WriteLine($"Account IDssssss: {accountIdObj}");
+        }
+
+
         return AccountGetDTOs;
     }
 
     [HttpGet("{id:length(24)}")]
-    public async Task<ActionResult<Account>> Get(string id)
+    public async Task<ActionResult<AccountGetDTO>> Get(string id)
     {
+        // Retrieve the account ID from HttpContext.Items
+        if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount && LogUserAccount.UserRole != "Back_Office")
+        {
+            return Unauthorized();
+        }
+
         var account = await _accountService.GetAccountAsync(id);
         if (account is null)
         {
             return NotFound();
         }
-        return account;
+        // Convert the Account objects to AccountDTO objects
+        var AccountGetDTO = new AccountGetDTO
+        {
+            Id = account.Id,
+            Name = account.Name,
+            NIC = account.NIC,
+            Address = account.Address,
+            Number = account.Number,
+            Email = account.Email,
+            DOB = account.DOB,
+            Gender = account.Gender,
+            IsActive = account.IsActive,
+            UserRole = account.UserRole,
+            CreatedTime = account.CreatedTime
+        };
+        Console.WriteLine($"Account ID: ");
+
+        return AccountGetDTO;
     }
 
     //GET Account => Login

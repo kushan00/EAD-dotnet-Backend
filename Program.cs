@@ -68,6 +68,7 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<JwtCookieParser>();
 
 app.MapControllers();
 
