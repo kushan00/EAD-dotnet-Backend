@@ -139,7 +139,7 @@ public class AccountController : ControllerBase
                 Expires = DateTime.Now.AddHours(12), // Cookie expires in 1 hour
                 HttpOnly = true,   // Makes the cookie accessible only through HTTP requests, not JavaScript
                 Secure = true,     // Sends the cookie only over HTTPS if available
-                SameSite = SameSiteMode.Strict // Restricts cookie sharing between sites
+                SameSite = SameSiteMode.None // Restricts cookie sharing between sites
             };
 
             // Set the cookie in the response with a name
@@ -248,9 +248,12 @@ public class AccountController : ControllerBase
     [HttpGet("Profile")]
     public ActionResult<AccountGetDTO> GetProfile()
     {
+        var jwtCookie = HttpContext.Request.Cookies["Train"];
+        System.Console.WriteLine("aaaaa" + jwtCookie);
         // Retrieve the account ID from HttpContext.Items
         if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount)
         {
+            System.Console.WriteLine(accountObj);
             if (LogUserAccount is null)
             {
                 return NotFound();
