@@ -50,6 +50,9 @@ namespace backend.Controllers
                 Id = trainDTO.Id ?? Guid.NewGuid().ToString(), // Generate a new Id if not provided
                 TrainId = trainDTO.TrainId,
                 Name = trainDTO.Name,
+                SeatingCapacity = trainDTO.SeatingCapacity,
+                FuelType = trainDTO.FuelType,
+                Model = trainDTO.Model,
                 IsActive = trainDTO.IsActive ?? false, // Default to false if not provided
             };
 
@@ -74,6 +77,9 @@ namespace backend.Controllers
                 Id = existingTrain.Id,
                 TrainId = trainDTO.TrainId,
                 Name = trainDTO.Name,
+                SeatingCapacity = trainDTO.SeatingCapacity,
+                FuelType = trainDTO.FuelType,
+                Model = trainDTO.Model,
                 IsActive = trainDTO.IsActive ?? false,
             };
 
