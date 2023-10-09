@@ -10,6 +10,9 @@ public class Train
     public String? Id { get; set; }
     public String? TrainId { get; set; } = null!;
     public String? Name { get; set; } = null!;
+    public String? SeatingCapacity { get; set; } = null!;
+    public String? FuelType { get; set; } = null!;
+    public String? Model { get; set; } = null!;
     public Boolean? IsActive { get; set; } = null!;
     [BsonDateTimeOptions(Kind = DateTimeKind.Utc, Representation = BsonType.DateTime)]
     public DateTime CreatedTime { get; set; } = DateTime.UtcNow;
