@@ -18,7 +18,6 @@ public class TrainService
         _trainCollection = mongoDatabase.GetCollection<Train>(databaseSetting.Value.TrainCollectionName);
     }
 
-    public async Task<Train?> GetTrainLogin(string TrainId) => await _trainCollection.Find(x => x.TrainId == TrainId).FirstOrDefaultAsync();
     public async Task<List<Train>> GetTrainAsync() => await _trainCollection.Find(_ => true).ToListAsync();
     public async Task<Train?> GetTrainAsync(string id) => await _trainCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
     public async Task CreateTrainAsync(Train train) => await _trainCollection.InsertOneAsync(train);

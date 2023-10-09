@@ -47,7 +47,6 @@ namespace backend.Controllers
         {
             var train = new Train
             {
-                Id = trainDTO.Id ?? Guid.NewGuid().ToString(), // Generate a new Id if not provided
                 TrainId = trainDTO.TrainId,
                 Name = trainDTO.Name,
                 SeatingCapacity = trainDTO.SeatingCapacity,
