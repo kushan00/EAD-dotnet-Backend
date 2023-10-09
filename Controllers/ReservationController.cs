@@ -22,27 +22,61 @@ namespace backend.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateReservation([FromBody] ReservationDTO reservationDTO)
         {
-            if (reservationDTO == null)
+            if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount)
             {
-                return BadRequest("Reservation data is null.");
+                if (reservationDTO == null && reservationDTO.ReserveTime == null)
+                {
+                    return BadRequest("Reservation data is null.");
+                }
+                bool isAgentBooked = false;
+                string user = LogUserAccount.Id;
+
+                if (LogUserAccount.UserRole == "Back_Office")
+                {
+                    isAgentBooked = true;
+                    user = reservationDTO.User;
+                    // Calculate the difference in days between ReserveTime and BookedTime
+                    TimeSpan difference = (TimeSpan)(reservationDTO.ReserveTime - DateTime.UtcNow);
+
+                    bool isWithin30Days = difference.TotalDays <= 30;
+                    long UserRecordCount = await _reservationService.GetCountUserReservationAsync(user);
+
+                    if (!isWithin30Days)
+                    {
+                        return BadRequest("Reserve date is more than 30 days from Booked date");
+                    }
+                    if (UserRecordCount > 4)
+                    {
+                        return BadRequest("Agent reserved more than 4 times for this user");
+                    }
+                }
+
+                // Find the count of existing records
+                long previousRecordCount = await _reservationService.GetCountReservationAsync();
+
+                // Generate the new BookingId based on the count
+                string newBookingId = "Bkg" + previousRecordCount + 1;
+
+                Reservation reservation = new()
+                {
+                    BookingId = newBookingId,
+                    User = user,
+                    Schedule = reservationDTO.Schedule,
+                    BookedTime = DateTime.UtcNow,
+                    ReserveTime = reservationDTO.ReserveTime,
+                    StartCity = reservationDTO.StartCity,
+                    EndCity = reservationDTO.EndCity,
+                    PaxCount = reservationDTO.PaxCount,
+                    Status = 1,
+                    IsAgentBooked = isAgentBooked,
+                };
+
+                await _reservationService.CreateReservationAsync(reservation);
+
+                return CreatedAtAction("GetReservation", new { id = reservation.Id }, reservation);
             }
+            return Unauthorized();
 
-            Reservation reservation = new Reservation
-            {
-                BookingId = reservationDTO.BookingId,
-                User = reservationDTO.User,
-                Schedule = reservationDTO.Schedule,
-                BookedTime = reservationDTO.BookedTime,
-                ReserveTime = reservationDTO.ReserveTime,
-                StartCity = reservationDTO.StartCity,
-                EndCity = reservationDTO.EndCity,
-                PaxCount = reservationDTO.PaxCount,
-                Status = reservationDTO.Status
-            };
-
-            await _reservationService.CreateReservationAsync(reservation);
-
-            return CreatedAtAction("GetReservation", new { id = reservation.Id }, reservation);
         }
 
         [HttpGet("{id}")]
@@ -68,46 +102,88 @@ namespace backend.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateReservation(string id, [FromBody] ReservationDTO reservationDTO)
         {
-            if (reservationDTO == null)
+            if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount)
             {
-                return BadRequest("Reservation data is null.");
+                var existingReservation = await _reservationService.GetReservationAsync(id);
+                if (reservationDTO == null)
+                {
+                    return BadRequest("Reservation data is null.");
+                }
+
+                if (existingReservation == null)
+                {
+                    return NotFound();
+                }
+                if (LogUserAccount.UserRole == "Back_Office")
+                {
+                    TimeSpan difference = (TimeSpan)(existingReservation.ReserveTime - DateTime.UtcNow);
+
+                    bool isWithin5days = difference.TotalDays <= 5;
+
+                    if (!isWithin5days)
+                    {
+                        return BadRequest("Reserve Date is less than 5 days from Booked date");
+                    }
+                }
+
+                existingReservation.BookingId = reservationDTO.BookingId;
+                existingReservation.User = reservationDTO.User;
+                existingReservation.Schedule = reservationDTO.Schedule;
+                existingReservation.BookedTime = reservationDTO.BookedTime;
+                existingReservation.ReserveTime = reservationDTO.ReserveTime;
+                existingReservation.StartCity = reservationDTO.StartCity;
+                existingReservation.EndCity = reservationDTO.EndCity;
+                existingReservation.PaxCount = reservationDTO.PaxCount;
+                existingReservation.Status = reservationDTO.Status;
+
+                await _reservationService.UpdateReservationAsync(id, existingReservation);
+                return Ok();
             }
-
-            var existingReservation = await _reservationService.GetReservationAsync(id);
-
-            if (existingReservation == null)
-            {
-                return NotFound();
-            }
-
-            existingReservation.BookingId = reservationDTO.BookingId;
-            existingReservation.User = reservationDTO.User;
-            existingReservation.Schedule = reservationDTO.Schedule;
-            existingReservation.BookedTime = reservationDTO.BookedTime;
-            existingReservation.ReserveTime = reservationDTO.ReserveTime;
-            existingReservation.StartCity = reservationDTO.StartCity;
-            existingReservation.EndCity = reservationDTO.EndCity;
-            existingReservation.PaxCount = reservationDTO.PaxCount;
-            existingReservation.Status = reservationDTO.Status;
-
-            await _reservationService.UpdateReservationAsync(id, existingReservation);
-
-            return NoContent();
+            return Unauthorized();
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteReservation(string id)
+        public async Task<IActionResult> DisableReservation(string id)
         {
-            var existingReservation = await _reservationService.GetReservationAsync(id);
+            if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount)
+            {
+                var existingReservation = await _reservationService.GetReservationAsync(id);
+                if (existingReservation == null)
+                {
+                    return NotFound();
+                }
+                if (LogUserAccount.UserRole == "Back_Office")
+                {
+                    TimeSpan difference = (TimeSpan)(existingReservation.ReserveTime - DateTime.UtcNow);
 
-            if (existingReservation == null)
+                    bool isWithin5days = difference.TotalDays <= 5;
+
+                    if (!isWithin5days)
+                    {
+                        return BadRequest("Reserve Date is less than 5 days from Booked date");
+                    }
+
+                }
+                existingReservation.Status = 2;
+
+                await _reservationService.UpdateReservationAsync(id, existingReservation);
+
+                return Ok();
+            }
+            return Unauthorized();
+        }
+
+        [HttpGet("user/{id}")]
+        public async Task<IActionResult> GetByUserReservation(string id)
+        {
+            var reservation = await _reservationService.GetByUserReservationAsync(id);
+
+            if (reservation == null)
             {
                 return NotFound();
             }
 
-            await _reservationService.RemoveReservationAsync(id);
-
-            return NoContent();
+            return Ok(reservation);
         }
     }
 }

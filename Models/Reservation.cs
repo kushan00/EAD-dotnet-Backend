@@ -19,6 +19,7 @@ public class Reservation
     public String? EndCity { get; set; } = null!;
     public int? PaxCount { get; set; } = null!;
     public int? Status { get; set; } = null!;
+    public Boolean? IsAgentBooked { get; set; } = null!;
 
     [BsonDateTimeOptions(Kind = DateTimeKind.Utc, Representation = BsonType.DateTime)]
     public DateTime CreatedTime { get; set; } = DateTime.UtcNow;
