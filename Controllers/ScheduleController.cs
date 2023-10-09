@@ -2,12 +2,6 @@ using backend.Models;
 using backend.DTO;
 using backend.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using Microsoft.Extensions.Options;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace backend.Controllers;
 
@@ -63,22 +57,12 @@ public class ScheduleController : ControllerBase
         return CreatedAtAction(nameof(Get), new { id = schedule.Id }, schedule);
     }
 
-    [HttpGet]
+    [HttpGet("Search")]
     public async Task<IActionResult> SearchSchedule([FromBody] ScheduleSearchDTO scheduleSearchDTO)
     {
-        Schedule schedule = new()
-        {
-            StartCity = scheduleSearchDTO.StartCity,
-            EndCity = scheduleSearchDTO.EndCity,
-            StartTime = scheduleSearchDTO.StartTime,
-            EndTime = scheduleSearchDTO.EndTime,
-            Class = scheduleSearchDTO.Class,
-            Type = scheduleSearchDTO.Type
-        };
+        var result = await _scheduleService.SearchScheduleAsync(scheduleSearchDTO.StartCity, scheduleSearchDTO.EndCity, scheduleSearchDTO.Time);
 
-        await _scheduleService.CreateScheduleAsync(schedule);
-
-        return CreatedAtAction(nameof(Get), new { id = schedule.Id }, schedule);
+        return Ok(result);
     }
 
 }

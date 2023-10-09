@@ -9,11 +9,11 @@ namespace backend.DTO;
     public String? EndCity { get; set; } = null!;
     public int? Price { get; set; } = null!;
     public String? Train { get; set; } = null!;
-    public DateTime? StartTime { get; set; } = null!;
-    public DateTime? EndTime { get; set; } = null!;
+    public TimeOnly? StartTime { get; set; } = null!;
+    public TimeOnly? EndTime { get; set; } = null!;
     public String? Class { get; set; } = null!;
     public String? Type { get; set; } = null!;
-    public String? RunBy { get; set; } = null!;
+    public String? RunBy { get; set; } = null!; // weekend & weekday
     public Boolean? IsActive { get; set; } = null!;
     public DateTime CreatedTime { get; set; } = DateTime.UtcNow;
 }
