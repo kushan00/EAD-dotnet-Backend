@@ -131,7 +131,7 @@ public class AccountController : ControllerBase
         {
             string token = CreateToken(account);
             string result = "{\"token\" : \"" + token + "\" ,\"role\": \""
-                    + account.UserRole + "\"}";
+                    + account.UserRole + "\",\"id\" :\"" + account.Id + "\"}";
 
             // Set a cookie with the token
             var cookieOptions = new CookieOptions
@@ -249,7 +249,6 @@ public class AccountController : ControllerBase
     public ActionResult<AccountGetDTO> GetProfile()
     {
         var jwtCookie = HttpContext.Request.Cookies["Train"];
-        System.Console.WriteLine("aaaaa" + jwtCookie);
         // Retrieve the account ID from HttpContext.Items
         if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount)
         {
