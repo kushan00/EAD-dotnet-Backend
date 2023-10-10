@@ -19,6 +19,7 @@ public class TrainService
     }
 
     public async Task<List<Train>> GetTrainAsync() => await _trainCollection.Find(_ => true).ToListAsync();
+    public async Task<List<Train>> GetActiveTrainAsync() => await _trainCollection.Find(x => x.IsActive == true).ToListAsync();
     public async Task<Train?> GetTrainAsync(string id) => await _trainCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
     public async Task CreateTrainAsync(Train train) => await _trainCollection.InsertOneAsync(train);
     public async Task UpdateTrainAsync(string id, Train train) => await _trainCollection.ReplaceOneAsync(x => x.Id == id, train);

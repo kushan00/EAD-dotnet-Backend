@@ -26,6 +26,13 @@ namespace backend.Controllers
             var trains = await _trainService.GetTrainAsync();
             return Ok(trains);
         }
+        // GET: api/Train
+        [HttpGet("active")]
+        public async Task<ActionResult<IEnumerable<TrainDTO>>> GetActiveTrains()
+        {
+            var trains = await _trainService.GetActiveTrainAsync();
+            return Ok(trains);
+        }
 
         // GET: api/Train/5
         [HttpGet("{id}")]
