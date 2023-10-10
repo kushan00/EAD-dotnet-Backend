@@ -24,7 +24,7 @@ namespace backend.Controllers
         {
             if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount)
             {
-                if (reservationDTO == null && reservationDTO.ReserveTime == null)
+                if (reservationDTO == null || reservationDTO.ReserveTime == null)
                 {
                     return BadRequest("Reservation data is null.");
                 }
@@ -67,6 +67,7 @@ namespace backend.Controllers
                     StartCity = reservationDTO.StartCity,
                     EndCity = reservationDTO.EndCity,
                     PaxCount = reservationDTO.PaxCount,
+                    TotalPrice = reservationDTO.TotalPrice,
                     Status = 1,
                     IsAgentBooked = isAgentBooked,
                 };
@@ -126,15 +127,15 @@ namespace backend.Controllers
                     }
                 }
 
-                existingReservation.BookingId = reservationDTO.BookingId;
-                existingReservation.User = reservationDTO.User;
-                existingReservation.Schedule = reservationDTO.Schedule;
-                existingReservation.BookedTime = reservationDTO.BookedTime;
-                existingReservation.ReserveTime = reservationDTO.ReserveTime;
-                existingReservation.StartCity = reservationDTO.StartCity;
-                existingReservation.EndCity = reservationDTO.EndCity;
-                existingReservation.PaxCount = reservationDTO.PaxCount;
-                existingReservation.Status = reservationDTO.Status;
+                existingReservation.User = reservationDTO.User ?? existingReservation.User;
+                existingReservation.Schedule = reservationDTO.Schedule ?? existingReservation.Schedule;
+                existingReservation.BookedTime = reservationDTO.BookedTime ?? existingReservation.BookedTime;
+                existingReservation.ReserveTime = reservationDTO.ReserveTime ?? existingReservation.ReserveTime;
+                existingReservation.StartCity = reservationDTO.StartCity ?? existingReservation.StartCity;
+                existingReservation.EndCity = reservationDTO.EndCity ?? existingReservation.EndCity;
+                existingReservation.PaxCount = reservationDTO.PaxCount ?? existingReservation.PaxCount;
+                existingReservation.TotalPrice = reservationDTO.TotalPrice ?? existingReservation.TotalPrice;
+                existingReservation.Status = reservationDTO.Status ?? existingReservation.Status;
 
                 await _reservationService.UpdateReservationAsync(id, existingReservation);
                 return Ok();

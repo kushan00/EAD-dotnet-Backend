@@ -8,6 +8,7 @@ namespace backend.DTO;
     public DateTime? ReserveTime { get; set; } = null;
     public String? StartCity { get; set; } = null;
     public String? EndCity { get; set; } = null;
+    public int? TotalPrice { get; set; } = null;
     public int? PaxCount { get; set; } = null;
     public int? Status { get; set; } = null!;
 }

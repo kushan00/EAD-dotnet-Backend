@@ -28,4 +28,5 @@ public class ReservationService
     public async Task RemoveReservationAsync(string id) => await _reservationCollection.DeleteOneAsync(x => x.Id == id);
     public async Task<long> GetCountReservationAsync() => await _reservationCollection.EstimatedDocumentCountAsync();
     public async Task<long> GetCountUserReservationAsync(string UserId) => await _reservationCollection.CountDocumentsAsync(x => x.User == UserId && x.IsAgentBooked == true && ((TimeSpan)(x.ReserveTime - DateTime.UtcNow)).TotalDays > 0);
+    public async Task<long> GetCountScheduleReservationAsync(string ScheduleId) => await _reservationCollection.CountDocumentsAsync(x => x.Schedule == ScheduleId && ((TimeSpan)(x.ReserveTime - DateTime.UtcNow)).TotalDays > 0);
 }

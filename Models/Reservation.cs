@@ -18,6 +18,7 @@ public class Reservation
     public String? StartCity { get; set; } = null!;
     public String? EndCity { get; set; } = null!;
     public int? PaxCount { get; set; } = null!;
+    public int? TotalPrice { get; set; } = null!;
     public int? Status { get; set; } = null!;
     public Boolean? IsAgentBooked { get; set; } = null!;
 
