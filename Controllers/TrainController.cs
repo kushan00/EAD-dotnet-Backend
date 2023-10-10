@@ -13,10 +13,15 @@ namespace backend.Controllers
     public class TrainController : ControllerBase
     {
         private readonly TrainService _trainService;
+        private readonly ScheduleService _scheduleService;
+        private readonly ReservationService _reservationService;
 
-        public TrainController(TrainService trainService)
+
+        public TrainController(TrainService trainService, ScheduleService scheduleService, ReservationService reservationService)
         {
             _trainService = trainService;
+            _scheduleService = scheduleService;
+            _reservationService = reservationService;
         }
 
         // GET: api/Train
@@ -59,7 +64,7 @@ namespace backend.Controllers
                 SeatingCapacity = trainDTO.SeatingCapacity,
                 FuelType = trainDTO.FuelType,
                 Model = trainDTO.Model,
-                IsActive = trainDTO.IsActive ?? false, // Default to false if not provided
+                IsActive = true, // Default to false if not provided
             };
 
             await _trainService.CreateTrainAsync(train);
@@ -78,25 +83,21 @@ namespace backend.Controllers
                 return NotFound();
             }
 
-            var updatedTrain = new Train
-            {
-                Id = existingTrain.Id,
-                TrainId = trainDTO.TrainId,
-                Name = trainDTO.Name,
-                SeatingCapacity = trainDTO.SeatingCapacity,
-                FuelType = trainDTO.FuelType,
-                Model = trainDTO.Model,
-                IsActive = trainDTO.IsActive ?? false,
-            };
+            existingTrain.Id = existingTrain.Id;
+            existingTrain.TrainId = trainDTO.TrainId ?? existingTrain.TrainId;
+            existingTrain.Name = trainDTO.Name ?? existingTrain.Name;
+            existingTrain.SeatingCapacity = trainDTO.SeatingCapacity ?? existingTrain.SeatingCapacity;
+            existingTrain.FuelType = trainDTO.FuelType ?? existingTrain.FuelType;
+            existingTrain.Model = trainDTO.Model ?? existingTrain.Model;
 
-            await _trainService.UpdateTrainAsync(id, updatedTrain);
+            await _trainService.UpdateTrainAsync(id, existingTrain);
 
             return NoContent();
         }
 
-        // DELETE: api/Train/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteTrain(string id)
+        // PUT: api/Train/5
+        [HttpPut("enable/{id}")]
+        public async Task<IActionResult> EnableTrain(string id)
         {
             var existingTrain = await _trainService.GetTrainAsync(id);
 
@@ -105,9 +106,58 @@ namespace backend.Controllers
                 return NotFound();
             }
 
-            await _trainService.RemoveTrainAsync(id);
+            existingTrain.IsActive = true;
+
+            await _trainService.UpdateTrainAsync(id, existingTrain);
 
             return NoContent();
+        }
+
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DisableTrain(string id)
+        {
+            // Retrieve the account ID from HttpContext.Items
+            if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount && LogUserAccount.UserRole != "Back_Office")
+            {
+                return Unauthorized();
+            }
+
+            var train = await _trainService.GetTrainAsync(id);
+
+            if (train is null)
+            {
+                return NotFound("Train not found");
+            }
+
+            var schedules = await _scheduleService.GetTrainScheduleAsync(id);
+
+            if (schedules is null)
+            {
+                return NotFound("Schedule not found");
+            }
+
+            foreach (var schedule in schedules)
+            {
+                long result = await _reservationService.GetCountScheduleReservationAsync(schedule.Id);
+                if (result > 0)
+                {
+                    return NotFound("Cannot cancel a train with existing reservations");
+                }
+            }
+
+            train.IsActive = false;
+
+            await _trainService.UpdateTrainAsync(id, train);
+
+            foreach (var schedule in schedules)
+            {
+                schedule.IsActive = false;
+
+                await _scheduleService.UpdateScheduleAsync(id, schedule);
+            }
+
+            return Ok();
         }
     }
 }
