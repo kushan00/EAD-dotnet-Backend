@@ -10,16 +10,19 @@ namespace backend.Controllers;
 public class ScheduleController : ControllerBase
 {
     private readonly ScheduleService _scheduleService;
-    public ScheduleController(ScheduleService scheduleService)
+    private readonly ReservationService _reservationService;
+
+    public ScheduleController(ScheduleService scheduleService, ReservationService reservationService)
     {
         _scheduleService = scheduleService;
+        _reservationService = reservationService;
     }
 
     [HttpGet]
     public async Task<ActionResult<List<Schedule>>> Get()
     {
         // Retrieve the account ID from HttpContext.Items
-        if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount && LogUserAccount.UserRole != "Back_Office")
+        if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount && LogUserAccount.UserRole != "Back_Office" && LogUserAccount.UserRole != "Agent")
         {
             return Unauthorized();
         }
@@ -49,7 +52,7 @@ public class ScheduleController : ControllerBase
             Class = scheduleDTO.Class,
             Type = scheduleDTO.Type,
             RunBy = scheduleDTO.RunBy,
-            IsActive = scheduleDTO.IsActive
+            IsActive = true
         };
 
         await _scheduleService.CreateScheduleAsync(schedule);
@@ -67,4 +70,83 @@ public class ScheduleController : ControllerBase
         return Ok(result);
     }
 
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DisableSchedule(string id)
+    {
+        if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount && LogUserAccount.UserRole != "Back_Office" && LogUserAccount.UserRole != "Agent")
+        {
+            var existingSchedule = await _scheduleService.GetScheduleAsync(id);
+            if (existingSchedule == null)
+            {
+                return NotFound();
+            }
+
+            long existingReservations = await _reservationService.GetCountScheduleReservationAsync(id);
+
+            if (existingReservations > 0)
+            {
+                return NotFound("Cannot cancel a scheduler with existing reservations");
+            }
+
+            existingSchedule.IsActive = false;
+
+            await _scheduleService.UpdateScheduleAsync(id, existingSchedule);
+
+            return Ok();
+        }
+        return Unauthorized();
+    }
+
+    [HttpPut("enable/{id}")]
+    public async Task<IActionResult> EnableSchedule(string id)
+    {
+        if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount && LogUserAccount.UserRole != "Back_Office" && LogUserAccount.UserRole != "Agent")
+        {
+            var existingSchedule = await _scheduleService.GetScheduleAsync(id);
+            if (existingSchedule == null)
+            {
+                return NotFound();
+            }
+
+            existingSchedule.IsActive = true;
+
+            await _scheduleService.UpdateScheduleAsync(id, existingSchedule);
+
+            return Ok();
+        }
+        return Unauthorized();
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateSchedule(string id, [FromBody] ScheduleDTO scheduleDTO)
+    {
+        if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount && LogUserAccount.UserRole != "Back_Office" && LogUserAccount.UserRole != "Agent")
+        {
+            var existingSchedule = await _scheduleService.GetScheduleAsync(id);
+            if (scheduleDTO == null)
+            {
+                return BadRequest("Schedule data is null.");
+            }
+
+            if (existingSchedule == null)
+            {
+                return NotFound();
+            }
+
+            existingSchedule.StartCity = scheduleDTO.StartCity ?? existingSchedule.StartCity;
+            existingSchedule.Cities = scheduleDTO.Cities ?? existingSchedule.Cities;
+            existingSchedule.EndCity = scheduleDTO.EndCity ?? existingSchedule.EndCity;
+            existingSchedule.Price = scheduleDTO.Price ?? existingSchedule.Price;
+            existingSchedule.Train = scheduleDTO.Train ?? existingSchedule.Train;
+            existingSchedule.StartTime = scheduleDTO.StartTime ?? existingSchedule.StartTime;
+            existingSchedule.EndTime = scheduleDTO.EndTime ?? existingSchedule.EndTime;
+            existingSchedule.Class = scheduleDTO.Class ?? existingSchedule.Class;
+            existingSchedule.Type = scheduleDTO.Type ?? existingSchedule.Type;
+            existingSchedule.RunBy = scheduleDTO.RunBy ?? existingSchedule.RunBy;
+
+            await _scheduleService.UpdateScheduleAsync(id, existingSchedule);
+            return Ok();
+        }
+        return Unauthorized();
+    }
 }

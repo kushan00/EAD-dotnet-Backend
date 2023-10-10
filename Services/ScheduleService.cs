@@ -19,6 +19,7 @@ public class ScheduleService
     }
 
     public async Task<List<Schedule>> GetScheduleAsync() => await _scheduleCollection.Find(_ => true).ToListAsync();
+    public async Task<List<Schedule>> GetTrainScheduleAsync(string id) => await _scheduleCollection.Find(x => x.Train == id).ToListAsync();
     public async Task<Schedule?> GetScheduleAsync(string id) => await _scheduleCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
     public async Task<List<Schedule>> SearchScheduleAsync(string startCity, string endCity)
     {
