@@ -20,12 +20,11 @@ public class ScheduleService
 
     public async Task<List<Schedule>> GetScheduleAsync() => await _scheduleCollection.Find(_ => true).ToListAsync();
     public async Task<Schedule?> GetScheduleAsync(string id) => await _scheduleCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
-    public async Task<List<Schedule>> SearchScheduleAsync(string startCity, string endCity, TimeOnly? time)
-    {
-        return await _scheduleCollection.Find(x => x.Cities.Contains(endCity) && x.Cities.Contains(startCity) && (Array.IndexOf(x.Cities, startCity) < Array.IndexOf(x.Cities, endCity)) &&
-    x.StartTime >= time && x.EndTime <= time).ToListAsync();
-    }
-
+    // public async Task<List<Schedule>> SearchScheduleAsync(string startCity, string endCity, TimeOnly? time)
+    // {
+    //     return await _scheduleCollection.Find(x => x.Cities.Contains(endCity) && x.Cities.Contains(startCity) && (x.Cities.IndexOf(startCity) < x.Cities.IndexOf(endCity)) &&
+    // x.StartTime >= time && x.EndTime <= time).ToListAsync();
+    // }
     public async Task CreateScheduleAsync(Schedule schedule) => await _scheduleCollection.InsertOneAsync(schedule);
     public async Task UpdateScheduleAsync(string id, Schedule schedule) => await _scheduleCollection.ReplaceOneAsync(x => x.Id == id, schedule);
     public async Task RemoveScheduleAsync(string id) => await _scheduleCollection.DeleteOneAsync(x => x.Id == id);

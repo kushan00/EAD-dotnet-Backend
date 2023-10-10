@@ -23,16 +23,16 @@ public class ScheduleController : ControllerBase
         {
             return Unauthorized();
         }
-        var accounts = await _scheduleService.GetScheduleAsync();
+        var schedules = await _scheduleService.GetScheduleAsync();
 
-        return Ok(accounts);
+        return Ok(schedules);
     }
 
     [HttpPost]
     public async Task<IActionResult> CreateSchedule([FromBody] ScheduleDTO scheduleDTO)
     {
         // Retrieve the account ID from HttpContext.Items
-        if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount && LogUserAccount.UserRole != "Back_Office")
+        if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount && (LogUserAccount.UserRole != "Back_Office" || LogUserAccount.UserRole != "Agent"))
         {
             return Unauthorized();
         }
@@ -57,12 +57,12 @@ public class ScheduleController : ControllerBase
         return CreatedAtAction(nameof(Get), new { id = schedule.Id }, schedule);
     }
 
-    [HttpGet("Search")]
-    public async Task<IActionResult> SearchSchedule([FromBody] ScheduleSearchDTO scheduleSearchDTO)
-    {
-        var result = await _scheduleService.SearchScheduleAsync(scheduleSearchDTO.StartCity, scheduleSearchDTO.EndCity, scheduleSearchDTO.Time);
+    // [HttpGet("Search")]
+    // public async Task<IActionResult> SearchSchedule([FromBody] ScheduleSearchDTO scheduleSearchDTO)
+    // {
+    //     var result = await _scheduleService.SearchScheduleAsync(scheduleSearchDTO.StartCity, scheduleSearchDTO.EndCity, scheduleSearchDTO.Time);
 
-        return Ok(result);
-    }
+    //     return Ok(result);
+    // }
 
 }
