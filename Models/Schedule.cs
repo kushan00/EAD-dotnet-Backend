@@ -14,8 +14,8 @@ public class Schedule
     public int? Price { get; set; } = null!;
     [BsonRepresentation(BsonType.ObjectId)]
     public String? Train { get; set; } = null!;
-    public String StartTime { get; set; } = null!;
-    public String EndTime { get; set; } = null!;
+    public String? StartTime { get; set; } = null!;
+    public String? EndTime { get; set; } = null!;
     public String? Class { get; set; } = null!;
     public String? Type { get; set; } = null!;
     public String? RunBy { get; set; } = null!;

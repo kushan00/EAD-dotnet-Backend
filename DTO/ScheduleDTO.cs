@@ -3,6 +3,7 @@ using backend.Models;
 namespace backend.DTO;
     public class ScheduleDTO
     {
+    public String? Id { get; set; }
     public String? StartCity { get; set; } = null!;
     public List<string>? Cities { get; set; } = null!;
     public String? EndCity { get; set; } = null!;
