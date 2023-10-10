@@ -62,18 +62,9 @@ public class ScheduleController : ControllerBase
     {
         var result = await _scheduleService.SearchScheduleAsync(scheduleSearchDTO.StartCity, scheduleSearchDTO.EndCity);
 
-        List<Schedule> filteredSchedules = result.Where(s => CheckTime(s.StartCity, s.EndCity, scheduleSearchDTO.Time)).ToList();
+        List<Schedule> filteredSchedules = result.Where(s => _scheduleService.CheckTime(s.StartCity, s.EndCity, scheduleSearchDTO.Time)).ToList();
 
         return Ok(result);
-    }
-
-    public Boolean CheckTime(String startTime, String endTime, String searchTime)
-    {
-        TimeOnly startTimeT = TimeOnly.ParseExact(startTime, "HH:mm", null);
-        TimeOnly endTimeT = TimeOnly.ParseExact(endTime, "HH:mm", null);
-        TimeOnly searchTimeT = TimeOnly.ParseExact(searchTime, "HH:mm", null);
-
-        return startTimeT < searchTimeT && endTimeT > searchTimeT;
     }
 
 }

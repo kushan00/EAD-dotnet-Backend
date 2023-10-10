@@ -27,4 +27,13 @@ public class ScheduleService
     public async Task CreateScheduleAsync(Schedule schedule) => await _scheduleCollection.InsertOneAsync(schedule);
     public async Task UpdateScheduleAsync(string id, Schedule schedule) => await _scheduleCollection.ReplaceOneAsync(x => x.Id == id, schedule);
     public async Task RemoveScheduleAsync(string id) => await _scheduleCollection.DeleteOneAsync(x => x.Id == id);
+
+    public Boolean CheckTime(String startTime, String endTime, String searchTime)
+    {
+        TimeOnly startTimeT = TimeOnly.ParseExact(startTime, "HH:mm", null);
+        TimeOnly endTimeT = TimeOnly.ParseExact(endTime, "HH:mm", null);
+        TimeOnly searchTimeT = TimeOnly.ParseExact(searchTime, "HH:mm", null);
+
+        return startTimeT < searchTimeT && endTimeT > searchTimeT;
+    }
 }
