@@ -67,7 +67,7 @@ public class ScheduleController : ControllerBase
 
         List<Schedule> filteredSchedules = result.Where(s => _scheduleService.CheckTime(s.StartCity, s.EndCity, scheduleSearchDTO.Time)).ToList();
 
-        return Ok(result);
+        return Ok(filteredSchedules);
     }
 
     [HttpDelete("{id}")]
