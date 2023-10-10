@@ -32,7 +32,7 @@ public class ScheduleController : ControllerBase
     public async Task<IActionResult> CreateSchedule([FromBody] ScheduleDTO scheduleDTO)
     {
         // Retrieve the account ID from HttpContext.Items
-        if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount && (LogUserAccount.UserRole != "Back_Office" || LogUserAccount.UserRole != "Agent"))
+        if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount && LogUserAccount.UserRole != "Back_Office" && LogUserAccount.UserRole != "Agent")
         {
             return Unauthorized();
         }
