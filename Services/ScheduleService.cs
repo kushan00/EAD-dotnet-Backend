@@ -23,7 +23,7 @@ public class ScheduleService
     public async Task<Schedule?> GetScheduleAsync(string id) => await _scheduleCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
     public async Task<List<Schedule>> SearchScheduleAsync(string startCity, string endCity)
     {
-        return await _scheduleCollection.Find(x => x.Cities.Contains(endCity) && x.Cities.Contains(startCity) && (x.Cities.IndexOf(startCity) < x.Cities.IndexOf(endCity))).ToListAsync();
+        return await _scheduleCollection.Find(x => x.Cities.Contains(endCity) && x.Cities.Contains(startCity)).ToListAsync();
     }
     public async Task CreateScheduleAsync(Schedule schedule) => await _scheduleCollection.InsertOneAsync(schedule);
     public async Task UpdateScheduleAsync(string id, Schedule schedule) => await _scheduleCollection.ReplaceOneAsync(x => x.Id == id, schedule);

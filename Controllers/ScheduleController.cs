@@ -65,7 +65,15 @@ public class ScheduleController : ControllerBase
     {
         var result = await _scheduleService.SearchScheduleAsync(scheduleSearchDTO.StartCity, scheduleSearchDTO.EndCity);
 
-        List<Schedule> filteredSchedules = result.Where(s => _scheduleService.CheckTime(s.StartCity, s.EndCity, scheduleSearchDTO.Time)).ToList();
+        List<Schedule> filteredSchedules = new List<Schedule>();
+
+        foreach (var schedule in result)
+        {
+            if (schedule.Cities.IndexOf(scheduleSearchDTO.StartCity) < schedule.Cities.IndexOf(scheduleSearchDTO.EndCity) && _scheduleService.CheckTime(schedule.StartTime, schedule.EndTime, scheduleSearchDTO.Time))
+            {
+                filteredSchedules.Add(schedule);
+            }
+        }
 
         return Ok(filteredSchedules);
     }
