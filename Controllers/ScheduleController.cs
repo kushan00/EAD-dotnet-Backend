@@ -157,4 +157,17 @@ public class ScheduleController : ControllerBase
         }
         return Unauthorized();
     }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<ScheduleDTO>> GetSchedule(string id)
+    {
+        var existingSchedule = await _scheduleService.GetScheduleAsync(id);
+
+        if (existingSchedule == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(existingSchedule);
+    }
 }
