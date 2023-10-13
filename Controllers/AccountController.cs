@@ -137,6 +137,87 @@ public class AccountController : ControllerBase
         return AccountGetDTOs;
     }
 
+
+    /// <summary>
+    /// The above function is a GET endpoint that retrieves a list of traveler accounts, but only if the
+    /// user is not a back office user.
+    /// </summary>
+    /// <returns>
+    /// The method is returning an `ActionResult<List<AccountGetDTO>>`.
+    /// </returns>
+    [HttpGet("travelers")]
+    public async Task<ActionResult<List<AccountGetDTO>>> GetTravelers()
+    {
+
+        if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount && LogUserAccount.UserRole != "Back_Office")
+        {
+            return Unauthorized();
+        }
+
+        /* The above code is retrieving traveler accounts using the `_accountService.GetTravelerAccountAsync()`
+        method. It then maps the retrieved accounts to a list of `AccountGetDTO` objects using the `Select`
+        method and initializes the properties of each `AccountGetDTO` object with the corresponding
+        properties from the retrieved accounts. Finally, it converts the mapped objects to a list using the
+        `ToList()` method. */
+        var accounts = await _accountService.GetTravelerAccountAsync();
+
+        var AccountGetDTOs = accounts.Select(account => new AccountGetDTO
+        {
+            Id = account.Id,
+            Name = account.Name,
+            NIC = account.NIC,
+            Address = account.Address,
+            Number = account.Number,
+            Email = account.Email,
+            DOB = account.DOB,
+            Gender = account.Gender,
+            IsActive = account.IsActive,
+            UserRole = account.UserRole,
+            CreatedTime = account.CreatedTime
+        }).ToList();
+
+        return AccountGetDTOs;
+    }
+
+    /// <summary>
+    /// This function retrieves a list of user accounts and returns them as a list of AccountGetDTO objects.
+    /// </summary>
+    /// <returns>
+    /// The method is returning a `Task<ActionResult<List<AccountGetDTO>>>`.
+    /// </returns>
+    [HttpGet("users")]
+    public async Task<ActionResult<List<AccountGetDTO>>> GetUsers()
+    {
+
+        if (HttpContext.Items.TryGetValue("UserDetails", out var accountObj) && accountObj is Account LogUserAccount && LogUserAccount.UserRole != "Back_Office")
+        {
+            return Unauthorized();
+        }
+
+        /* The above code is retrieving a list of user accounts asynchronously using the
+        `_accountService.GetUsersAccountAsync()` method. It then maps the properties of each account to a
+        new `AccountGetDTO` object using the `Select` method and initializes a list of `AccountGetDTO`
+        objects. */
+        var accounts = await _accountService.GetUsersAccountAsync();
+
+        var AccountGetDTOs = accounts.Select(account => new AccountGetDTO
+        {
+            Id = account.Id,
+            Name = account.Name,
+            NIC = account.NIC,
+            Address = account.Address,
+            Number = account.Number,
+            Email = account.Email,
+            DOB = account.DOB,
+            Gender = account.Gender,
+            IsActive = account.IsActive,
+            UserRole = account.UserRole,
+            CreatedTime = account.CreatedTime
+        }).ToList();
+
+        return AccountGetDTOs;
+    }
+
     /// <summary>
     /// This function retrieves an account based on the provided ID and returns its details in a specific
     /// format.
@@ -158,6 +239,51 @@ public class AccountController : ControllerBase
             return Unauthorized();
         }
 
+        /* The above code is using C# to retrieve an account asynchronously using the
+        `_accountService.GetAccountAsync(id)` method. It then checks if the account is null, and if
+        so, it returns a "Not Found" response. */
+        var account = await _accountService.GetAccountAsync(id);
+        if (account is null)
+        {
+            return NotFound();
+        }
+        /* The above code is creating a new instance of the AccountGetDTO class and populating its properties
+        with values from an existing account object. */
+        var AccountGetDTO = new AccountGetDTO
+        {
+            Id = account.Id,
+            Name = account.Name,
+            NIC = account.NIC,
+            Address = account.Address,
+            Number = account.Number,
+            Email = account.Email,
+            DOB = account.DOB,
+            Gender = account.Gender,
+            IsActive = account.IsActive,
+            UserRole = account.UserRole,
+            CreatedTime = account.CreatedTime
+        };
+
+        return AccountGetDTO;
+    }
+
+
+    /// <summary>
+    /// This C# function retrieves an account asynchronously using an ID, checks if the account is null,
+    /// and returns a "Not Found" response if it is, otherwise it creates a new instance of the
+    /// AccountGetDTO class and populates its properties with values from the account object.
+    /// </summary>
+    /// <param name="id">The `id` parameter is a string that represents the unique identifier of the
+    /// account. It is used to retrieve the account from the database. The length of the `id` parameter is
+    /// validated using the `length(24)` constraint, which ensures that the length of the `id` parameter
+    /// is exactly</param>
+    /// <returns>
+    /// The code is returning an instance of the `AccountGetDTO` class, which contains the properties of
+    /// an account object.
+    /// </returns>
+    [HttpGet("profile/{id:length(24)}")]
+    public async Task<ActionResult<AccountGetDTO>> GetMobile(string id)
+    {
         /* The above code is using C# to retrieve an account asynchronously using the
         `_accountService.GetAccountAsync(id)` method. It then checks if the account is null, and if
         so, it returns a "Not Found" response. */
@@ -510,6 +636,51 @@ public class AccountController : ControllerBase
     }
 
     /// <summary>
+    /// The function updates the profile information of an account based on the provided AccountPostDTO
+    /// object.
+    /// </summary>
+    /// <param name="AccountPostDTO">AccountPostDTO is a data transfer object (DTO) that represents the
+    /// data sent in the request body when updating an account profile. It contains the following
+    /// properties:</param>
+    /// <returns>
+    /// The method is returning an IActionResult. The possible return values are:
+    /// - NotFound() if the LogUserAccount is null
+    /// - Ok() if the account is successfully updated
+    /// - NoContent() if the account ID is not found in HttpContext.Items
+    /// </returns>
+    [HttpPut("Profile/{id:length(24)}")]
+    public async Task<IActionResult> UpdateMobileProfile(string id, AccountPostDTO accountPutDTO)
+    {
+        var account = await _accountService.GetAccountAsync(id);
+
+        if (account is null)
+        {
+            return NotFound();
+        }
+
+        if (accountPutDTO.Password is not null)
+        {
+            CreatePasswordHash(accountPutDTO.Password!, out byte[] passwordHash, out byte[] passwordSalt);
+            account.Password = passwordHash;
+            account.Salt = passwordSalt;
+        }
+
+        account.Name = accountPutDTO.Name ?? account.Name;
+        account.Address = accountPutDTO.Address ?? account.Address;
+        account.NIC = accountPutDTO.NIC ?? account.NIC;
+        account.Number = accountPutDTO.Number ?? account.Number;
+        account.Email = accountPutDTO.Email ?? account.Email;
+        account.DOB = accountPutDTO.DOB ?? account.DOB;
+        account.Gender = accountPutDTO.Gender ?? account.Gender;
+        account.UserRole = accountPutDTO.UserRole ?? account.UserRole;
+
+        await _accountService.UpdateAccountAsync(id, account);
+
+        return Ok();
+
+    }
+
+    /// <summary>
     /// The function updates the status of a user's profile to inactive.
     /// </summary>
     /// <returns>
@@ -535,5 +706,26 @@ public class AccountController : ControllerBase
             return Ok();
         }
         return NoContent();
+    }
+
+    /// <summary>
+    /// This function updates the mobile status profile of a user by setting their IsActive property to
+    /// false.
+    /// </summary>
+    /// <param name="id">The "id" parameter is a string that represents the unique identifier of the user's
+    /// profile. It is expected to be a string of length 24.</param>
+    /// <returns>
+    /// The method is returning an Ok result.
+    /// </returns>
+    [HttpPut("Profile/Status/{id:length(24)}")]
+    public async Task<IActionResult> UserMobileStatusProfile(string id)
+    {
+
+        var account = await _accountService.GetAccountAsync(id);
+
+        account.IsActive = false;
+
+        await _accountService.UpdateAccountAsync(id, account);
+        return Ok();
     }
 }
